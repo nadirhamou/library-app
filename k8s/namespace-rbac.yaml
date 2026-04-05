@@ -1,0 +1,93 @@
+# ─────────────────────────────────────────────
+# Namespace
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: library
+  labels:
+    istio-injection: enabled
+
+---
+# ─────────────────────────────────────────────
+# ServiceAccount for book-service
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: book-service-sa
+  namespace: library
+
+---
+# ─────────────────────────────────────────────
+# ServiceAccount for user-service
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: user-service-sa
+  namespace: library
+
+---
+# ─────────────────────────────────────────────
+# Role: read-only access for book-service
+# ─────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: book-service-role
+  namespace: library
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+
+---
+# ─────────────────────────────────────────────
+# Role: read-only access for user-service
+# ─────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: user-service-role
+  namespace: library
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+
+---
+# ─────────────────────────────────────────────
+# RoleBinding: book-service
+# ─────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: book-service-rolebinding
+  namespace: library
+subjects:
+  - kind: ServiceAccount
+    name: book-service-sa
+    namespace: library
+roleRef:
+  kind: Role
+  name: book-service-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ─────────────────────────────────────────────
+# RoleBinding: user-service
+# ─────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: user-service-rolebinding
+  namespace: library
+subjects:
+  - kind: ServiceAccount
+    name: user-service-sa
+    namespace: library
+roleRef:
+  kind: Role
+  name: user-service-role
+  apiGroup: rbac.authorization.k8s.io

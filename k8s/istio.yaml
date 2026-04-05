@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────
+# Istio Gateway
+# ─────────────────────────────────────────────
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: library-gateway
+  namespace: library
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+
+---
+# ─────────────────────────────────────────────
+# VirtualService: route to book-service
+# ─────────────────────────────────────────────
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: book-service-vs
+  namespace: library
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - library-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/books
+      rewrite:
+        uri: /books
+      route:
+        - destination:
+            host: book-service
+            port:
+              number: 3001
+
+---
+# ─────────────────────────────────────────────
+# VirtualService: route to user-service
+# ─────────────────────────────────────────────
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: user-service-vs
+  namespace: library
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - library-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/users
+      rewrite:
+        uri: /users
+      route:
+        - destination:
+            host: user-service
+            port:
+              number: 3002
+    - match:
+        - uri:
+            prefix: /api/loans
+      rewrite:
+        uri: /loans
+      route:
+        - destination:
+            host: user-service
+            port:
+              number: 3002
+
+---
+# ─────────────────────────────────────────────
+# PeerAuthentication: enforce mTLS in namespace
+# ─────────────────────────────────────────────
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: library
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# ─────────────────────────────────────────────
+# DestinationRule: mTLS for book-service
+# ─────────────────────────────────────────────
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: book-service-dr
+  namespace: library
+spec:
+  host: book-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+
+---
+# ─────────────────────────────────────────────
+# DestinationRule: mTLS for user-service
+# ─────────────────────────────────────────────
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: user-service-dr
+  namespace: library
+spec:
+  host: user-service
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
