@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+
+  book-service:
+    build: ./book-service
+    container_name: book-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+    networks:
+      - library-net
+    restart: unless-stopped
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - BOOK_SERVICE_URL=http://book-service:3001
+    depends_on:
+      - book-service
+    networks:
+      - library-net
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: library-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - book-service
+      - user-service
+    networks:
+      - library-net
+    restart: unless-stopped
+
+networks:
+  library-net:
+    driver: bridge
